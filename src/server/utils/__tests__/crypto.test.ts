@@ -1,4 +1,4 @@
-import { kdf, verify } from "../utils/crypto";
+import { kdf, verify } from "../crypto";
 const crypto = require("crypto");
 
 const HASH =
