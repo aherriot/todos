@@ -48,6 +48,7 @@
     "postcss-cli": "^8.3.0",
     "schemats": "^3.0.3",
     "tailwindcss": "^2.0.1-compat",
+    "ts-jest": "^26.5.6",
     "ts-loader": "^8.2.0",
     "typescript": "^4.0.5",
     "wait-on": "^5.3.0",
@@ -70,6 +71,7 @@
     "generate:types:prod": "graphql-codegen --config codegen.yml",
     "generate:db-types": "schemats generate -c postgres://todos@localhost/todos -o src/types/db-schema-types.ts",
     "test:client": "react-scripts test",
+    "test:server": "jest -c src/server/jest.config.js src/server",
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:8000",

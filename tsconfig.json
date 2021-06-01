@@ -19,6 +19,5 @@
     "typeRoots": ["src/types", "src/client/types"],
     "baseUrl": "src"
   },
-  "include": ["src", "src/client/setupTests.js"],
-  "exlcude": ["**/*.test.tsx"]
+  "include": ["src", "src/client/setupTests.js"]
 }
