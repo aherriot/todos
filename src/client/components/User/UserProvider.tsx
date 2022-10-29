@@ -13,6 +13,7 @@ const UserProvider = ({ children }: Props) => {
   const token = localStorage.getItem("token");
   if (token) {
     decoded = jwtDecode(token);
+    docoded.jwt = token;
   }
   return (
     <UserContext.Provider value={decoded}>{children}</UserContext.Provider>
