@@ -1,6 +1,6 @@
 import path from "path";
 import http from "http";
-import express from "express";
+import express, { Request, Response } from "express";
 import { execute, subscribe } from "graphql";
 import { ApolloServer } from "apollo-server-express";
 import expressPlayground from "graphql-playground-middleware-express";
@@ -46,7 +46,7 @@ app.get(
 app.use(express.static("build"));
 
 // Always return the main index.html, so react-router render the route in the src
-app.get("*", (req, res) => {
+app.get("*", (req: Request, res: Response) => {
   res.sendFile(path.resolve("build", "index.html"));
 });
 
@@ -69,7 +69,7 @@ async function start() {
   const httpServer = http.createServer(app);
   apolloServer.applyMiddleware({ app });
 
-  await new Promise((resolve) => httpServer.listen(PORT, resolve));
+  await new Promise<void>((resolve) => httpServer.listen(PORT, resolve));
 
   console.log(`HTTP server started.`);
 
@@ -92,7 +92,7 @@ async function start() {
             jwt.verify(
               token,
               config.jwt.secret,
-              (err: VerifyErrors | null, decoded: object | undefined) => {
+              (err: VerifyErrors | null, decoded: unknown): void => {
                 const decodedPayload = decoded as JwtPayload;
                 if (err) {
                   if (err.name === "TokenExpiredError") {

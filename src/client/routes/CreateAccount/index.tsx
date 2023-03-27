@@ -17,7 +17,7 @@ type FormData = {
 };
 
 const CreateAccount = () => {
-  const { showToast, clearToast } = useToast();
+  const { showToast } = useToast();
   const {
     register,
     formState: { isValid, isSubmitted, errors },

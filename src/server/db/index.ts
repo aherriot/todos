@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, QueryResultRow } from "pg";
 import config from "../../../database.json";
 
 let dbConfig;
@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === "production") {
 const pool = new Pool(dbConfig);
 
 function query<
-  R,
+  R extends QueryResultRow,
   I extends Array<string | number | boolean | null | undefined> = Array<
     string | number | boolean | null | undefined
   >

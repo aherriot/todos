@@ -1,12 +1,13 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 import jwt from "jsonwebtoken";
+import { QueryResult } from "pg";
 
 import { User, List, ListItem } from "types/graphql-schema-types";
 import {
-  users as UsersResult,
-  lists as ListsResult,
-  list_items as ListItemsResult,
-  // shared_lists as SharedListsResult,
+  Users,
+  Lists,
+  ListItems,
+  // SharedLists,
 } from "types/db-schema-types";
 
 import pubsub, { EVENTS } from "./pubsub";
@@ -14,7 +15,7 @@ import db from "../db";
 import { verify, kdf } from "../utils/crypto";
 import config from "../config.json";
 
-type ListResult = ListsResult & { owner_id: number; is_shared: boolean };
+type ListResult = Lists & { owner_id: number; is_shared: boolean };
 export type ResolvedList = Pick<
   List,
   "id" | "name" | "createdAt" | "updatedAt"
@@ -32,15 +33,16 @@ export type ResolvedListItem = Pick<
 };
 export type ResolvedUser = Pick<User, "id" | "username" | "email">;
 
-const convertDbRowToUser = (row: UsersResult): ResolvedUser => {
+const convertDbRowToUser = (row: Users): ResolvedUser => {
   return {
     id: row.id.toString(),
+
     username: row.username,
     email: row.email,
   };
 };
 
-const convertDbRowToList = (row: ListsResult | ListResult): ResolvedList => {
+const convertDbRowToList = (row: Lists | ListResult): ResolvedList => {
   const data: ResolvedList = {
     id: row.id.toString(),
     name: row.name,
@@ -51,15 +53,20 @@ const convertDbRowToList = (row: ListsResult | ListResult): ResolvedList => {
   if ("owner_id" in row) {
     data.ownerId = row.owner_id.toString();
   }
+  if ("user_id" in row) {
+    data.ownerId = row.user_id.toString();
+  }
 
   if ("is_shared" in row) {
     data.shared = row.is_shared;
+  } else {
+    data.shared = false;
   }
 
   return data;
 };
 
-const convertDbRowToListItem = (row: ListItemsResult): ResolvedListItem => {
+const convertDbRowToListItem = (row: ListItems): ResolvedListItem => {
   const data: ResolvedListItem = {
     id: row.id.toString(),
     listId: row.list_id.toString(),
@@ -80,7 +87,7 @@ const convertDbRowToListItem = (row: ListItemsResult): ResolvedListItem => {
 export const getUser = async (userId: string): Promise<ResolvedUser> => {
   let result;
   try {
-    result = await db.query<UsersResult>(
+    result = await db.query<Users>(
       "select * from users where id = $1 limit 1;",
       [userId]
     );
@@ -149,7 +156,7 @@ export const getListItems = async (
 ): Promise<ResolvedListItem[]> => {
   let result;
   try {
-    result = await db.query<ListItemsResult>(
+    result = await db.query<ListItems>(
       `select * from list_items
         where list_id = $1
         order by position;`,
@@ -164,7 +171,7 @@ export const getListItems = async (
 
 export const getSharedListsUsers = async (userId: string) => {
   try {
-    const result = await db.query<UsersResult>(
+    const result = await db.query<Users>(
       `select u.* 
         from shared_lists sl 
         inner join users u 
@@ -194,7 +201,7 @@ export const login = async (username: string, password: string) => {
 
   let result;
   try {
-    result = await db.query<UsersResult>(
+    result = await db.query<Users>(
       `select id, username, password 
         from users 
         where username = $1 limit 1;`,
@@ -254,7 +261,7 @@ export const createAccount = async (
 
   let result;
   try {
-    result = await db.query<UsersResult>(
+    result = await db.query<Users>(
       `select id, username, password 
           from users
            where username = $1 limit 1;`,
@@ -280,7 +287,7 @@ export const createAccount = async (
 
   let result2: any;
   try {
-    result2 = await db.query<UsersResult>(
+    result2 = await db.query<Users>(
       `insert into 
           users (username, password, email) 
           values ($1, $2, $3) 
@@ -309,9 +316,9 @@ export const createList = async (
   name: string,
   position: number | null | undefined
 ) => {
-  let result;
+  let result: QueryResult<Lists>;
   try {
-    result = await db.query<ListsResult>(
+    result = await db.query<Lists>(
       `insert into lists
         (user_id, name)
         values
@@ -323,7 +330,7 @@ export const createList = async (
     throw new ApolloError("DB query failed", "BAD_REQUEST", { error: e });
   }
 
-  return convertDbRowToList(result.rows[0]) as List;
+  return convertDbRowToList(result.rows[0]);
 };
 
 export const deleteList = async (userId: string, listId: string) => {
@@ -352,7 +359,7 @@ export const shareLists = async (
 ) => {
   let userResult;
   try {
-    userResult = await db.query<UsersResult>(
+    userResult = await db.query<Users>(
       `select id, username
         from users
         where username=$1 or email=$2
@@ -443,7 +450,7 @@ export const createListItem = async (
         return innerResult;
       });
     } else {
-      const list = getList(listId, userId);
+      const list = await getList(listId, userId);
 
       if (list) {
         result = await db.query(
